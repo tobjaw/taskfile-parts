@@ -107,7 +107,7 @@ perSystem = { config, pkgs, ... }: {
       # Custom template for shell hook (default: null, uses built-in)
       template = null;
 
-      # Additional commands to run after task list (default: "")
+      # Additional commands to run before task list (default: "")
       extraCommands = "";
     };
   };
@@ -228,7 +228,7 @@ perSystem = { config, pkgs, ... }: {
 
 The `go-task` package is always included automatically in `buildInputs`, so you only need to specify additional dependencies your tasks need.
 
-**Note**: If you specify a `shellHook` in `taskfile.shell`, it will be appended after the taskfile shell hook (which displays available tasks).
+**Note**: If you specify a `shellHook` in `taskfile.shell`, it will prepended before the taskfile shell hook (which displays available tasks).
 
 ### Shell Hook Integration
 

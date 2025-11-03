@@ -1,0 +1,35 @@
+version: '3'
+
+vars:
+  PROJECT_NAME: my-project
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  hello:
+    desc: Print a greeting
+    cmds:
+      - echo "Hello from {{.PROJECT_NAME}}!"
+
+  build:
+    desc: Build the project
+    cmds:
+      - echo "Building {{.PROJECT_NAME}}..."
+      - echo "Build complete!"
+
+  test:
+    desc: Run tests
+    deps:
+      - build
+    cmds:
+      - echo "Running tests..."
+      - echo "All tests passed!"
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - echo "Cleaning build artifacts..."
+      - echo "Clean complete!"

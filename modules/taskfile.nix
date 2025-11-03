@@ -2,6 +2,7 @@
   config,
   lib,
   flake-parts-lib,
+  inputs,
   ...
 }:
 let
@@ -11,6 +12,54 @@ let
     mkIf
     mkMerge
     ;
+
+  # System-independent JSON parsing for Taskfiles
+  #
+  # CRITICAL: This function must produce the same output regardless of which
+  # perSystem calls it. The Taskfile JSON is system-independent (same YAML -> same JSON).
+  #
+  # To avoid IFD issues when evaluating multiple systems without remote builders,
+  # we force the YAML->JSON conversion to run on x86_64-darwin, which can:
+  # - Run natively on x86_64-darwin (Intel Macs)
+  # - Run via Rosetta 2 on aarch64-darwin (Apple Silicon Macs)
+  # - Be substituted from binary cache on any system
+  # - Run natively on x86_64-linux via extra-platforms or remote builders
+  #
+  # This is a pragmatic tradeoff: requires Rosetta or x86_64 emulation, but avoids
+  # the need for per-system IFD which would require remote builders for all platforms.
+  parseTaskfile =
+    taskfilePath: targetPkgs:
+    let
+      # Use x86_64-darwin for building the YAML parser
+      # Works on both Intel and Apple Silicon Macs via Rosetta
+      yjPkgs = import inputs.nixpkgs { system = "x86_64-darwin"; };
+
+      taskfileJson = yjPkgs.runCommand "taskfile.json"
+        {
+          nativeBuildInputs = [ yjPkgs.yj ];
+          # Build locally to avoid remote builder complexity
+          preferLocalBuild = true;
+          # Allow caching the result
+          allowSubstitutes = true;
+          # Include taskfile path so changes invalidate cache
+          taskfilePath = taskfilePath;
+        }
+        ''
+          if ! yj -yj < "$taskfilePath" > $out 2>"$TMPDIR/error.log"; then
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
+            echo "Error: Failed to parse Taskfile at: $taskfilePath" >&2
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
+            echo "" >&2
+            echo "YAML parser output:" >&2
+            cat "$TMPDIR/error.log" >&2
+            echo "" >&2
+            echo "Please ensure your Taskfile.yml is valid YAML syntax." >&2
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
+            exit 1
+          fi
+        '';
+    in
+    builtins.fromJSON (builtins.readFile taskfileJson);
 in
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption (
@@ -205,43 +254,19 @@ in
   config.perSystem =
     {
       config,
+      inputs',
       pkgs,
       system,
       ...
-    }:
+    }@perSystemArgs:
     let
       cfg = config.taskfile;
 
-      # Skip evaluation if taskfile is not enabled
-      # This prevents IFD issues when evaluating for systems where we can't build
-      shouldEvaluate = cfg.enable;
+      # Parse the Taskfile using the top-level helper function
+      # This runs IFD but uses the current system's pkgs
+      taskfileData = if cfg.enable then parseTaskfile cfg.path pkgs else { };
 
-      # Convert Taskfile.yml to JSON using IFD
-      # Use runCommand for simplicity - it's system-specific but that's okay
-      # since perSystem evaluates separately for each system
-      taskfileJson = if shouldEvaluate then pkgs.runCommand "taskfile.json"
-        {
-          nativeBuildInputs = [ cfg.yamlConverter ];
-          # Make this build locally to avoid issues with remote builders
-          preferLocalBuild = true;
-          allowSubstitutes = false;
-        }
-        ''
-          # Convert YAML to JSON
-          if ! yj -yj < ${cfg.path} > $out 2>error.log; then
-            echo "Error: Failed to convert Taskfile at ${toString cfg.path} to JSON" >&2
-            echo "Please ensure the Taskfile is valid YAML" >&2
-            if [ -f error.log ]; then
-              cat error.log >&2
-            fi
-            exit 1
-          fi
-        '' else null;
-
-      # Parse the JSON to get task definitions
-      taskfileData = if shouldEvaluate then builtins.fromJSON (builtins.readFile taskfileJson) else {};
-
-      # Extract tasks, handling missing tasks gracefully
+      # Extract tasks from the Taskfile
       allTasks = taskfileData.tasks or { };
 
       # Filter out excluded tasks

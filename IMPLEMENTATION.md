@@ -41,15 +41,31 @@ The module exposes the following options under `perSystem.taskfile`:
 - `package` (package, default: pkgs.go-task) - go-task package to use
 - `excludeTasks` (list of strings, default: []) - Tasks to exclude from generation
 - `generatePackages` (bool, default: true) - Whether to generate packages
-- `yamlConverter` (package, default: pkgs.yj) - YAML to JSON converter
+- `shell` (attrs, default: {}) - Customize the auto-generated devShell
+- `shellHook.*` - Shell hook configuration options
 
 ### 2. YAML Parsing with IFD
 
-The module uses Import From Derivation (IFD) to parse YAML:
+The module uses Import From Derivation (IFD) to parse YAML at evaluation time:
 
 1. Uses `pkgs.runCommand` to convert `Taskfile.yml` to JSON using `yj`
 2. Reads the JSON file with `builtins.readFile` and parses with `builtins.fromJSON`
 3. Extracts task definitions from the parsed structure
+
+**Why IFD?**
+- Nix has no built-in YAML parser
+- This is the only way to read actual Taskfile.yml files
+- It's fast (< 1 second for `yj` build) and results are cached
+- This is the standard approach (similar to `pkgs.formats.yaml` in nixpkgs)
+
+**Cross-Platform Compatibility:**
+- The YAML parser is built ONCE using x86_64-darwin (not per-system)
+- Works on Apple Silicon Macs via Rosetta 2 translation
+- Works on Intel Macs natively
+- Can be substituted from binary cache on Linux systems
+- Uses `preferLocalBuild` to avoid remote builder complexity
+- This design allows evaluating all platforms without needing remote builders
+- Supports: x86_64-linux, aarch64-linux, x86_64-darwin, aarch64-darwin
 
 ### 3. Dynamic App Generation
 
@@ -111,16 +127,19 @@ nix build .#hello
 
 ## Known Limitations
 
-1. **Cross-Platform Evaluation**: IFD requires building for each platform. When running `nix flake show`, it will attempt to evaluate all systems, which may fail if remote builders aren't configured.
+1. **Task Dependencies**: Dependencies are handled by Taskfile itself, not Nix. The `deps` field in tasks is executed by `go-task`, not evaluated by Nix.
 
-2. **Workaround**: Use system-specific commands:
-   ```bash
-   nix run .#<task>  # Works fine, uses current system
-   ```
+2. **IFD Performance**: First evaluation requires building `yj` and converting YAML, but:
+   - The build is very fast (< 1 second)
+   - Results are cached based on Taskfile content
+   - Subsequent evaluations are instant
 
-3. **Task Dependencies**: Dependencies are handled by Taskfile itself, not Nix
+3. **Platform Requirements**: To evaluate multi-system flakes without remote builders:
+   - macOS users need Rosetta 2 (enabled by default on Apple Silicon)
+   - Linux users need `extra-platforms = x86_64-darwin` configured or binary cache access
+   - The IFD uses x86_64-darwin for the YAML parser to maximize compatibility
 
-4. **IFD Performance**: First evaluation requires converting YAML, but it's cached afterward
+4. **Internal Tasks**: Taskfile's internal tasks (prefixed with `:`) are not automatically excluded. Use `excludeTasks` to hide them if needed.
 
 ## Future Enhancements
 

@@ -19,7 +19,7 @@ The fastest way to get started:
 
 ```bash
 # Initialize a new project with taskfile-parts
-nix flake init -t github:yourorg/taskfile-parts
+nix flake init -t github:tobjaw/taskfile-parts
 
 # Update flake inputs
 nix flake update
@@ -42,7 +42,7 @@ Add taskfile-parts to your existing flake:
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
-    taskfile-parts.url = "github:yourorg/taskfile-parts";
+    taskfile-parts.url = "github:tobjaw/taskfile-parts";
   };
 
   outputs = inputs @ { flake-parts, ... }:

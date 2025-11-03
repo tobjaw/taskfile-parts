@@ -39,15 +39,8 @@
           };
 
           # Shell hook is automatically injected into devShells.default by default!
-          # You can customize it with additional commands:
           shellHook = {
             enable = true;  # default: true
-            extraCommands = ''
-              echo ""
-              echo "💡 Quick start:"
-              echo "  task hello    - Run the hello task"
-              echo "  task --list   - List all tasks"
-            '';
           };
         };
 

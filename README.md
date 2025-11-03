@@ -106,9 +106,6 @@ perSystem = { config, pkgs, ... }: {
 
       # Custom template for shell hook (default: null, uses built-in)
       template = null;
-
-      # Additional commands to run before task list (default: "")
-      extraCommands = "";
     };
   };
 };
@@ -320,24 +317,6 @@ taskfile = {
 };
 ```
 
-#### Extra Commands
-
-Add additional information without overriding the default template:
-
-```nix
-taskfile = {
-  enable = true;
-  shellHook = {
-    enable = true;
-    extraCommands = ''
-      echo ""
-      echo "📦 Project Info:"
-      echo "  Version: 1.0.0"
-      echo "  Build output: ./dist"
-    '';
-  };
-};
-```
 
 ### Excluding Tasks
 

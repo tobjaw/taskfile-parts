@@ -174,20 +174,6 @@ in
             '';
           };
 
-          extraCommands = mkOption {
-            type = types.lines;
-            default = "";
-            example = ''
-              echo "Current project: $PWD"
-              echo "Build artifacts: ./dist"
-            '';
-            description = ''
-              Additional shell commands to run before the task list.
-
-              Use this to add project-specific information or setup without
-              overriding the entire template.
-            '';
-          };
         };
 
         shellHookText = mkOption {
@@ -327,13 +313,8 @@ in
             '';
 
             template = if cfg.shellHook.template != null then cfg.shellHook.template else defaultTemplate;
-
-            taskListHook = lib.optionalString cfg.shellHook.showTaskList template;
-            extraHook = lib.optionalString (cfg.shellHook.extraCommands != "") cfg.shellHook.extraCommands;
-            combinedHook =
-              extraHook + (lib.optionalString (taskListHook != "" && extraHook != "") "\n") + taskListHook;
           in
-          combinedHook;
+          lib.optionalString cfg.shellHook.showTaskList template;
       })
 
       # Auto-inject shell hook into devShells.default if enabled

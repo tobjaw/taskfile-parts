@@ -71,6 +71,21 @@ in
         '';
       };
 
+      shellPackages = mkOption {
+        type = types.listOf types.package;
+        default = [ ];
+        example = lib.literalExpression "[ pkgs.jq pkgs.git pkgs.nodejs ]";
+        description = ''
+          Additional packages to include in the auto-generated devShell environment.
+
+          These packages will be available to tasks when they run in the devShell.
+          This is useful for ensuring your tasks have access to required tools
+          without needing to define a custom devShell.
+
+          Note: The go-task package (config.taskfile.package) is always included.
+        '';
+      };
+
       shellHook = {
         enable = mkOption {
           type = types.bool;
@@ -280,7 +295,7 @@ in
       # Uses lib.mkDefault so user definitions take precedence
       (mkIf (cfg.enable && cfg.shellHook.enable) {
         devShells.default = lib.mkDefault (pkgs.mkShell {
-          buildInputs = [ cfg.package ];
+          buildInputs = [ cfg.package ] ++ cfg.shellPackages;
           shellHook = cfg.shellHookText;
         });
       })

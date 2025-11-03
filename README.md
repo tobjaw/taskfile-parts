@@ -88,6 +88,9 @@ perSystem = { config, pkgs, ... }: {
     # YAML to JSON converter package (default: pkgs.yj)
     yamlConverter = pkgs.yj;
 
+    # Additional packages to include in the auto-generated devShell (default: [])
+    shellPackages = [ pkgs.jq pkgs.git pkgs.nodejs ];
+
     # Shell hook configuration
     shellHook = {
       # Enable automatic injection into devShells.default (default: true)
@@ -180,6 +183,29 @@ tasks:
 ```
 
 ## Advanced Usage
+
+### Development Shell Packages
+
+When the auto-generated devShell is enabled, you can specify additional packages that should be available in the environment. This is useful for ensuring your tasks have access to required tools:
+
+```nix
+perSystem = { config, pkgs, ... }: {
+  taskfile = {
+    enable = true;
+    path = ./Taskfile.yml;
+
+    # These packages will be available to all tasks running in the devShell
+    shellPackages = with pkgs; [
+      jq        # For JSON processing
+      git       # For version control tasks
+      nodejs    # For npm/node tasks
+      docker    # For container tasks
+    ];
+  };
+};
+```
+
+The `go-task` package is always included automatically, so you only need to specify additional dependencies your tasks need.
 
 ### Shell Hook Integration
 

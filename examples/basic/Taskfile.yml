@@ -1,0 +1,96 @@
+version: '3'
+
+vars:
+  GREETING: Hello from Taskfile
+  BUILD_DIR: ./build
+  PROJECT_NAME: example-project
+
+tasks:
+  hello:
+    desc: Print a friendly greeting message
+    cmds:
+      - echo "{{.GREETING}}!"
+      - echo "Running on {{OS}}/{{ARCH}}"
+
+  build:
+    desc: Build the project
+    summary: |
+      Builds the project by creating a build directory and
+      compiling the necessary artifacts.
+    cmds:
+      - mkdir -p {{.BUILD_DIR}}
+      - echo "Building {{.PROJECT_NAME}}..."
+      - echo "Build completed successfully" > {{.BUILD_DIR}}/status.txt
+      - echo "Build artifact created at {{.BUILD_DIR}}/status.txt"
+
+  test:
+    desc: Run project tests
+    deps:
+      - build
+    cmds:
+      - echo "Running tests for {{.PROJECT_NAME}}..."
+      - echo "All tests passed!"
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf {{.BUILD_DIR}}
+      - echo "Cleaned build directory"
+
+  lint:
+    desc: Run linting checks
+    cmds:
+      - echo "Running linter..."
+      - echo "No issues found!"
+
+  format:
+    desc: Format source code
+    cmds:
+      - echo "Formatting code..."
+      - echo "Code formatted successfully"
+
+  check:
+    desc: Run all checks (lint and test)
+    deps:
+      - lint
+      - test
+    cmds:
+      - echo "All checks completed successfully!"
+
+  dev:
+    desc: Start development environment
+    summary: |
+      Starts a development environment with hot-reloading
+      and automatic rebuilds on file changes.
+    cmds:
+      - echo "Starting development server..."
+      - echo "Development server running on http://localhost:8080"
+      - echo "Press Ctrl+C to stop"
+
+  deploy:
+    desc: Deploy the application
+    deps:
+      - check
+      - build
+    cmds:
+      - echo "Deploying {{.PROJECT_NAME}}..."
+      - echo "Deployment successful!"
+
+  version:
+    desc: Display version information
+    silent: true
+    cmds:
+      - echo "{{.PROJECT_NAME}} version 1.0.0"
+      - task --version
+
+  watch:
+    desc: Watch for file changes and rebuild
+    cmds:
+      - echo "Watching for changes..."
+      - echo "(This is a demo - actual watching not implemented)"
+
+  # This task is intentionally excluded in the main flake.nix for demonstration
+  internal:
+    desc: Internal task for testing exclusion
+    cmds:
+      - echo "This is an internal task"

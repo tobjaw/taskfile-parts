@@ -53,7 +53,7 @@
       ];
 
       perSystem =
-        { config, pkgs, ... }:
+        { config, pkgs, system, ... }:
         {
           # Enable the taskfile module for this flake's testing
           taskfile = {
@@ -61,6 +61,10 @@
             path = ./Taskfile.yml;
             package = pkgs.go-task;
             excludeTasks = [ ];
+            # Optional: Set ifdSystem to enable cross-platform evaluation without remote builders
+            # This dogfooding flake uses "aarch64-darwin" since it's developed on Apple Silicon
+            # Linux users should use "x86_64-linux" instead, or leave as null for per-system builds
+            ifdSystem = "aarch64-darwin";
           };
 
           # Development shell with go-task and nix tooling

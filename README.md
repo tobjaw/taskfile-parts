@@ -63,6 +63,8 @@ Add taskfile-parts to your existing flake:
 }
 ```
 
+See [./examples](examples) for extended configuration examples.
+
 ## Configuration
 
 The module provides several configuration options:

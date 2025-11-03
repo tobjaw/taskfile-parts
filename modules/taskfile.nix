@@ -15,31 +15,22 @@ let
 
   # System-independent JSON parsing for Taskfiles
   #
-  # CRITICAL: This function must produce the same output regardless of which
-  # perSystem calls it. The Taskfile JSON is system-independent (same YAML -> same JSON).
-  #
-  # To avoid IFD issues when evaluating multiple systems without remote builders,
-  # we force the YAML->JSON conversion to run on x86_64-darwin, which can:
-  # - Run natively on x86_64-darwin (Intel Macs)
-  # - Run via Rosetta 2 on aarch64-darwin (Apple Silicon Macs)
-  # - Be substituted from binary cache on any system
-  # - Run natively on x86_64-linux via extra-platforms or remote builders
-  #
-  # This is a pragmatic tradeoff: requires Rosetta or x86_64 emulation, but avoids
-  # the need for per-system IFD which would require remote builders for all platforms.
+  # The Taskfile JSON is system-independent (same YAML -> same JSON).
+  # To allow cross-platform evaluation without remote builders, we build the
+  # YAML parser using a configurable system (defaults to current system).
   parseTaskfile =
-    taskfilePath: targetPkgs:
+    taskfilePath: targetPkgs: ifdSystem:
     let
-      # Use x86_64-darwin for building the YAML parser
-      # Works on both Intel and Apple Silicon Macs via Rosetta
-      yjPkgs = import inputs.nixpkgs { system = "x86_64-darwin"; };
+      # Use the specified IFD system's pkgs for building the YAML parser
+      # This allows users to choose a system they have builders for
+      yjPkgs = if ifdSystem == null then targetPkgs else (import inputs.nixpkgs { system = ifdSystem; });
 
       taskfileJson = yjPkgs.runCommand "taskfile.json"
         {
           nativeBuildInputs = [ yjPkgs.yj ];
-          # Build locally to avoid remote builder complexity
-          preferLocalBuild = true;
-          # Allow caching the result
+          # Allow building on remote builders or substituting from cache
+          preferLocalBuild = false;
+          # Allow substituting from binary cache to avoid local builds
           allowSubstitutes = true;
           # Include taskfile path so changes invalidate cache
           taskfilePath = taskfilePath;
@@ -137,6 +128,30 @@ in
 
             Must provide a command-line tool that can convert YAML to JSON.
             The default `yj` works with the `-yj` flags.
+          '';
+        };
+
+        ifdSystem = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          example = "x86_64-linux";
+          description = ''
+            System to use for Import From Derivation (IFD) when parsing the Taskfile.
+
+            By default (null), uses the current system's pkgs. This works well when
+            evaluating for the native system, but requires remote builders when
+            evaluating for other systems (e.g., nix flake show --all-systems).
+
+            Setting this to a specific system (e.g., "x86_64-linux" or "x86_64-darwin")
+            allows cross-platform evaluation without remote builders, but requires
+            that you can build for that system (either natively, via emulation, or
+            via binary caches).
+
+            Common scenarios:
+            - Linux users: set to "x86_64-linux" for maximum compatibility
+            - macOS users: set to "x86_64-darwin" if you have Rosetta 2 (Apple Silicon)
+                          or are on Intel Mac
+            - Leave as null if you have remote builders configured
           '';
         };
 
@@ -263,8 +278,8 @@ in
       cfg = config.taskfile;
 
       # Parse the Taskfile using the top-level helper function
-      # This runs IFD but uses the current system's pkgs
-      taskfileData = if cfg.enable then parseTaskfile cfg.path pkgs else { };
+      # This runs IFD using the configured system (or current system if not specified)
+      taskfileData = if cfg.enable then parseTaskfile cfg.path pkgs cfg.ifdSystem else { };
 
       # Extract tasks from the Taskfile
       allTasks = taskfileData.tasks or { };

@@ -87,6 +87,11 @@ perSystem = { config, pkgs, ... }: {
     # Whether to generate packages in addition to apps (default: true)
     generatePackages = true;
 
+    # System to use for IFD when parsing Taskfile (default: null, uses current system)
+    # Set this to enable cross-platform evaluation without remote builders
+    # Examples: "x86_64-linux" for Linux, "aarch64-darwin" for Apple Silicon
+    ifdSystem = null;
+
     # Customize the auto-generated devShell (default: {})
     shell = {
       buildInputs = [ pkgs.jq pkgs.git ];
@@ -405,11 +410,13 @@ includes:
 - The module uses Import From Derivation (IFD), which means the Taskfile is converted to JSON during evaluation
 - This is very fast (< 1 second for building `yj` and converting YAML)
 - The conversion is cached based on the content hash of your Taskfile, making subsequent evaluations instant
-- The YAML parser is built once for x86_64-darwin, which works across all platforms:
-  - Apple Silicon Macs: runs via Rosetta 2
-  - Intel Macs: runs natively
-  - Linux systems: can substitute from binary cache or use remote builders
-- This design allows evaluating multi-system flakes without needing remote builders
+- By default, the YAML parser is built per-system using that system's native tooling
+- Works seamlessly on all supported platforms when evaluating for the native system
+- For cross-platform evaluation (e.g., `nix flake show --all-systems`):
+  - Set `ifdSystem` to your native platform (e.g., "aarch64-darwin" on Apple Silicon Macs)
+  - Or configure remote builders for target platforms
+  - Or rely on binary caches (like cache.nixos.org) for instant substitution
+- The `ifdSystem` option allows cross-platform evaluation without remote builders
 
 ## Limitations
 

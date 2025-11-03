@@ -41,6 +41,7 @@ The module exposes the following options under `perSystem.taskfile`:
 - `package` (package, default: pkgs.go-task) - go-task package to use
 - `excludeTasks` (list of strings, default: []) - Tasks to exclude from generation
 - `generatePackages` (bool, default: true) - Whether to generate packages
+- `ifdSystem` (null or string, default: null) - System to use for IFD (e.g., "x86_64-linux")
 - `shell` (attrs, default: {}) - Customize the auto-generated devShell
 - `shellHook.*` - Shell hook configuration options
 
@@ -59,12 +60,12 @@ The module uses Import From Derivation (IFD) to parse YAML at evaluation time:
 - This is the standard approach (similar to `pkgs.formats.yaml` in nixpkgs)
 
 **Cross-Platform Compatibility:**
-- The YAML parser is built ONCE using x86_64-darwin (not per-system)
-- Works on Apple Silicon Macs via Rosetta 2 translation
-- Works on Intel Macs natively
-- Can be substituted from binary cache on Linux systems
-- Uses `preferLocalBuild` to avoid remote builder complexity
-- This design allows evaluating all platforms without needing remote builders
+- By default, the YAML parser is built per-system using that system's native pkgs
+- The `ifdSystem` option allows pinning to a specific system for cross-platform evaluation
+- When `ifdSystem` is set, all systems use that platform for parsing (e.g., "aarch64-darwin" on Apple Silicon)
+- This allows `nix flake show --all-systems` without remote builders
+- Works natively on all supported platforms
+- Uses `allowSubstitutes = true` to fetch from binary caches when available
 - Supports: x86_64-linux, aarch64-linux, x86_64-darwin, aarch64-darwin
 
 ### 3. Dynamic App Generation
@@ -134,10 +135,13 @@ nix build .#hello
    - Results are cached based on Taskfile content
    - Subsequent evaluations are instant
 
-3. **Platform Requirements**: To evaluate multi-system flakes without remote builders:
-   - macOS users need Rosetta 2 (enabled by default on Apple Silicon)
-   - Linux users need `extra-platforms = x86_64-darwin` configured or binary cache access
-   - The IFD uses x86_64-darwin for the YAML parser to maximize compatibility
+3. **Platform Requirements**:
+   - Works natively when evaluating for the current system (default behavior)
+   - For cross-platform evaluation (e.g., `nix flake show --all-systems`), you have options:
+     - Set `ifdSystem` to a system you can build for (recommended for development)
+     - Configure remote builders for target platforms, OR
+     - Use binary caches (like cache.nixos.org) to substitute pre-built parsers
+   - The IFD build is very fast (< 1 second), so even without caches it's quick
 
 4. **Internal Tasks**: Taskfile's internal tasks (prefixed with `:`) are not automatically excluded. Use `excludeTasks` to hide them if needed.
 

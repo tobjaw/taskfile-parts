@@ -90,7 +90,7 @@ perSystem = { config, pkgs, ... }: {
 
     # Shell hook configuration
     shellHook = {
-      # Enable automatic task listing in devShells (default: true)
+      # Enable automatic injection into devShells.default (default: true)
       enable = true;
 
       # Show task list when entering shell (default: true)
@@ -183,11 +183,11 @@ tasks:
 
 ### Shell Hook Integration
 
-By default, when you enable `taskfile-parts`, entering your development shell will automatically display a list of available tasks. You can customize this behavior:
+When you enable `taskfile-parts`, a development shell is automatically created with a shell hook that displays available tasks when you enter the shell. This happens automatically - no manual setup required!
 
-#### Basic Usage
+#### Automatic Shell Hook (Default Behavior)
 
-Add the shell hook to your development shell:
+Simply enable the module and you get a dev shell with task listing:
 
 ```nix
 perSystem = { config, pkgs, ... }: {
@@ -196,24 +196,50 @@ perSystem = { config, pkgs, ... }: {
     path = ./Taskfile.yml;
   };
 
+  # That's it! devShells.default is automatically created with the shell hook
+};
+```
+
+When you run `nix develop`, you'll see:
+```
+📋 Available Tasks
+==================
+task: Available tasks for this project:
+* build:   Build the project
+* test:    Run tests
+...
+```
+
+#### Disable Shell Hook
+
+To disable the automatic shell hook creation:
+
+```nix
+taskfile = {
+  enable = true;
+  shellHook.enable = false;  # Disables auto-injection
+};
+```
+
+#### Custom Shell with Manual Hook Integration
+
+If you want to define your own shell but still include the task listing:
+
+```nix
+perSystem = { config, pkgs, ... }: {
+  taskfile = {
+    enable = true;
+    path = ./Taskfile.yml;
+    shellHook.enable = false;  # Disable auto-injection
+  };
+
   devShells.default = pkgs.mkShell {
-    buildInputs = [ pkgs.go-task ];
+    buildInputs = [ pkgs.go-task pkgs.jq ];
     shellHook = ''
       echo "Welcome to my project!"
       echo ""
     '' + config.taskfile.shellHookText;
   };
-};
-```
-
-#### Disable Shell Hook
-
-To disable the automatic task listing:
-
-```nix
-taskfile = {
-  enable = true;
-  shellHook.enable = false;
 };
 ```
 

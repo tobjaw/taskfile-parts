@@ -76,9 +76,13 @@ in
           type = types.bool;
           default = true;
           description = ''
-            Whether to add a shell hook that displays available tasks when entering the dev shell.
+            Whether to automatically inject a shell hook into devShells.default.
 
-            Set to false to disable the automatic task listing.
+            When enabled, the shell hook will be automatically added to your default dev shell,
+            displaying available tasks when you enter the shell.
+
+            Set to false to disable automatic injection (you can still manually add
+            config.taskfile.shellHookText to your custom shells).
           '';
         };
 
@@ -270,6 +274,15 @@ in
             combinedHook = taskListHook + (lib.optionalString (taskListHook != "" && extraHook != "") "\n") + extraHook;
           in
           combinedHook;
+      })
+
+      # Auto-inject shell hook into devShells.default if enabled
+      # Uses lib.mkDefault so user definitions take precedence
+      (mkIf (cfg.enable && cfg.shellHook.enable) {
+        devShells.default = lib.mkDefault (pkgs.mkShell {
+          buildInputs = [ cfg.package ];
+          shellHook = cfg.shellHookText;
+        });
       })
     ];
 }

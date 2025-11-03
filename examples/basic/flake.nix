@@ -25,29 +25,26 @@
           package = pkgs.go-task;
           excludeTasks = [ "internal" ];  # Exclude the internal task
           generatePackages = true;
+
+          # Shell hook is automatically injected into devShells.default by default!
+          # You can customize it with additional commands:
+          shellHook = {
+            enable = true;  # default: true
+            extraCommands = ''
+              echo ""
+              echo "💡 Quick start:"
+              echo "  task hello    - Run the hello task"
+              echo "  task --list   - List all tasks"
+            '';
+          };
         };
 
-        # Optional: Add a development shell
-        devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            go-task
-          ];
-
-          shellHook = ''
-            echo "📋 Example Taskfile Project"
-            echo ""
-            echo "Available commands:"
-            echo "  nix run .#tasks-list    - List all tasks"
-            echo "  nix run .#hello         - Run the hello task"
-            echo "  nix run .#build         - Run the build task"
-            echo "  nix run .#test          - Run tests"
-            echo ""
-            echo "Or use task directly:"
-            echo "  task --list"
-            echo "  task hello"
-            echo ""
-          '';
-        };
+        # The devShell is now automatically created with the shell hook!
+        # You can still add your own custom shell if needed:
+        # devShells.default = pkgs.mkShell {
+        #   buildInputs = [ /* your packages */ ];
+        #   shellHook = config.taskfile.shellHookText;  # Manual injection if you prefer
+        # };
       };
     };
 }

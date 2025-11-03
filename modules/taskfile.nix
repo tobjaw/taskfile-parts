@@ -306,10 +306,9 @@ in
             defaultTemplate = ''
               echo "📋 Available Tasks"
               echo "=================="
-              ${cfg.package}/bin/task --taskfile ${cfg.path} --list
+              ${cfg.package}/bin/task --taskfile ${cfg.path} --list | tail -n +2
               echo ""
-              echo "Run tasks with: task <task-name>"
-              echo "Or via Nix apps: nix run .#<task-name>"
+              echo "Run tasks with: \`task <task-name>\` OR \`nix run .#<task-name>\`"
             '';
 
             template = if cfg.shellHook.template != null then cfg.shellHook.template else defaultTemplate;

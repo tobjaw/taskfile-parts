@@ -26,11 +26,17 @@
           excludeTasks = [ "internal" ];  # Exclude the internal task
           generatePackages = true;
 
-          # Additional packages available to tasks in the devShell
-          shellPackages = with pkgs; [
-            jq   # Example: useful for JSON processing in tasks
-            git  # Example: for version control tasks
-          ];
+          # Customize the auto-generated devShell
+          shell = {
+            buildInputs = with pkgs; [
+              jq   # Example: useful for JSON processing in tasks
+              git  # Example: for version control tasks
+            ];
+            env = {
+              # Example: set environment variables
+              # PROJECT_ENV = "development";
+            };
+          };
 
           # Shell hook is automatically injected into devShells.default by default!
           # You can customize it with additional commands:

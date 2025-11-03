@@ -8,7 +8,7 @@ A [flake-parts](https://flake.parts) module that integrates [Taskfile](https://t
 - **Package Outputs**: Optionally generate packages for each task
 - **Metadata Extraction**: Task descriptions are automatically extracted and added to app metadata
 - **Flexible Configuration**: Exclude specific tasks, customize the go-task package, and more
-- **Zero Boilerplate**: Just enable the module and point to your Taskfile
+- **Minimal Boilerplate**: Just enable the module and point to your Taskfile. Optionally enable devShell hook for MOTD.
 - **Cross-Platform**: Works on Linux and macOS (x86_64 and aarch64)
 
 ## Quick Start
@@ -87,6 +87,21 @@ perSystem = { config, pkgs, ... }: {
 
     # YAML to JSON converter package (default: pkgs.yj)
     yamlConverter = pkgs.yj;
+
+    # Shell hook configuration
+    shellHook = {
+      # Enable automatic task listing in devShells (default: true)
+      enable = true;
+
+      # Show task list when entering shell (default: true)
+      showTaskList = true;
+
+      # Custom template for shell hook (default: null, uses built-in)
+      template = null;
+
+      # Additional commands to run after task list (default: "")
+      extraCommands = "";
+    };
   };
 };
 ```
@@ -109,7 +124,7 @@ nix run .#test -- --verbose
 nix flake show
 ```
 
-If `generatePackages` is enabled (default), you can also build tasks:
+If `generatePackages` is enabled (disabled by default), you can also build tasks:
 
 ```bash
 # Build a task as a package
@@ -165,6 +180,89 @@ tasks:
 ```
 
 ## Advanced Usage
+
+### Shell Hook Integration
+
+By default, when you enable `taskfile-parts`, entering your development shell will automatically display a list of available tasks. You can customize this behavior:
+
+#### Basic Usage
+
+Add the shell hook to your development shell:
+
+```nix
+perSystem = { config, pkgs, ... }: {
+  taskfile = {
+    enable = true;
+    path = ./Taskfile.yml;
+  };
+
+  devShells.default = pkgs.mkShell {
+    buildInputs = [ pkgs.go-task ];
+    shellHook = ''
+      echo "Welcome to my project!"
+      echo ""
+    '' + config.taskfile.shellHookText;
+  };
+};
+```
+
+#### Disable Shell Hook
+
+To disable the automatic task listing:
+
+```nix
+taskfile = {
+  enable = true;
+  shellHook.enable = false;
+};
+```
+
+Or disable just the task list but keep custom commands:
+
+```nix
+taskfile = {
+  enable = true;
+  shellHook.showTaskList = false;
+};
+```
+
+#### Custom Template
+
+Customize the entire shell hook output:
+
+```nix
+taskfile = {
+  enable = true;
+  shellHook = {
+    enable = true;
+    template = ''
+      echo "🎯 Available Tasks:"
+      ${config.taskfile.package}/bin/task --taskfile ${config.taskfile.path} --list --silent
+      echo ""
+      echo "Type 'task <name>' to run a task"
+    '';
+  };
+};
+```
+
+#### Extra Commands
+
+Add additional information without overriding the default template:
+
+```nix
+taskfile = {
+  enable = true;
+  shellHook = {
+    enable = true;
+    extraCommands = ''
+      echo ""
+      echo "📦 Project Info:"
+      echo "  Version: 1.0.0"
+      echo "  Build output: ./dist"
+    '';
+  };
+};
+```
 
 ### Excluding Tasks
 
@@ -231,7 +329,7 @@ To work on taskfile-parts itself:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourorg/taskfile-parts
+git clone https://github.com/tobjaw/taskfile-parts
 cd taskfile-parts
 
 # Enter the development shell
@@ -255,7 +353,6 @@ MIT License - see LICENSE file for details
 
 - [Taskfile](https://taskfile.dev) - Task runner / simpler Make alternative written in Go
 - [flake-parts](https://flake.parts) - Simplify Nix flakes with the module system
-- [devenv](https://devenv.sh) - Fast, declarative, reproducible development environments
 
 ## Acknowledgments
 

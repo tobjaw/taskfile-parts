@@ -70,6 +70,79 @@ in
           The default `yj` works with the `-yj` flags.
         '';
       };
+
+      shellHook = {
+        enable = mkOption {
+          type = types.bool;
+          default = true;
+          description = ''
+            Whether to add a shell hook that displays available tasks when entering the dev shell.
+
+            Set to false to disable the automatic task listing.
+          '';
+        };
+
+        showTaskList = mkOption {
+          type = types.bool;
+          default = true;
+          description = ''
+            Whether to display the task list in the shell hook.
+
+            When enabled, entering the dev shell will automatically run `task --list`
+            to show all available tasks.
+          '';
+        };
+
+        template = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          example = lib.literalExpression ''
+            '''
+              echo "🎯 My Custom Tasks"
+              ''${config.taskfile.package}/bin/task --taskfile ''${config.taskfile.path} --list --silent
+            '''
+          '';
+          description = ''
+            Custom shell hook template to run when entering the dev shell.
+
+            When set to null (default), uses the built-in template that displays
+            available tasks with nice formatting.
+
+            When set to a string, that string will be used as the shell hook content.
+            You can reference the task command and Taskfile path via:
+            - config.taskfile.package: The go-task package
+            - config.taskfile.path: Path to the Taskfile
+
+            Set this to an empty string to disable output entirely while keeping
+            the hook enabled (useful for conditional logic).
+          '';
+        };
+
+        extraCommands = mkOption {
+          type = types.lines;
+          default = "";
+          example = ''
+            echo "Current project: $PWD"
+            echo "Build artifacts: ./dist"
+          '';
+          description = ''
+            Additional shell commands to run after the task list.
+
+            Use this to add project-specific information or setup without
+            overriding the entire template.
+          '';
+        };
+      };
+
+      shellHookText = mkOption {
+        type = types.str;
+        internal = true;
+        description = ''
+          The generated shell hook text that can be added to devShells.
+
+          This is computed based on the shellHook configuration options above.
+        '';
+      };
     };
   });
 
@@ -172,6 +245,31 @@ in
             description = "List all available tasks from the Taskfile";
           };
         };
+      })
+
+      # Provide shell hook as a passthru attribute for users to add to their devShells
+      (mkIf cfg.enable {
+        taskfile.shellHookText =
+          let
+            # Use custom template if provided, otherwise use default
+            defaultTemplate = ''
+              echo "📋 Available Tasks"
+              echo "=================="
+              ${cfg.package}/bin/task --taskfile ${cfg.path} --list
+              echo ""
+              echo "Run tasks with: task <task-name>"
+              echo "Or via Nix apps: nix run .#<task-name>"
+            '';
+
+            template = if cfg.shellHook.template != null
+                       then cfg.shellHook.template
+                       else defaultTemplate;
+
+            taskListHook = lib.optionalString cfg.shellHook.showTaskList template;
+            extraHook = lib.optionalString (cfg.shellHook.extraCommands != "") cfg.shellHook.extraCommands;
+            combinedHook = taskListHook + (lib.optionalString (taskListHook != "" && extraHook != "") "\n") + extraHook;
+          in
+          combinedHook;
       })
     ];
 }

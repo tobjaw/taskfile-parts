@@ -1,0 +1,44 @@
+version: '3'
+
+vars:
+  PROJECT_NAME: taskfile-parts
+
+tasks:
+  format:
+    desc: Format Nix files with nixfmt-rfc-style
+    cmds:
+      - nixfmt modules/taskfile.nix flake.nix
+
+  check:
+    desc: Check flake and run nix flake check
+    cmds:
+      - nix flake check
+
+  show:
+    desc: Show flake outputs
+    cmds:
+      - nix flake show
+
+  update:
+    desc: Update flake inputs
+    cmds:
+      - nix flake update
+
+  build-example:
+    desc: Build example hello task
+    cmds:
+      - nix build .#hello
+
+  test-example:
+    desc: Test running example tasks
+    cmds:
+      - echo "Testing hello task..."
+      - nix run .#hello
+      - echo "Testing tasks-list..."
+      - nix run .#tasks-list
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -f result
+      - rm -rf examples/*/build

@@ -212,23 +212,34 @@ in
     let
       cfg = config.taskfile;
 
+      # Skip evaluation if taskfile is not enabled
+      # This prevents IFD issues when evaluating for systems where we can't build
+      shouldEvaluate = cfg.enable;
+
       # Convert Taskfile.yml to JSON using IFD
-      taskfileJson =
-        pkgs.runCommand "taskfile.json"
-          {
-            nativeBuildInputs = [ cfg.yamlConverter ];
-          }
-          ''
-            # Convert YAML to JSON
-            if ! yj -yj < ${cfg.path} > $out 2>/dev/null; then
-              echo "Error: Failed to convert Taskfile at ${cfg.path} to JSON" >&2
-              echo "Please ensure the Taskfile is valid YAML" >&2
-              exit 1
+      # Use runCommand for simplicity - it's system-specific but that's okay
+      # since perSystem evaluates separately for each system
+      taskfileJson = if shouldEvaluate then pkgs.runCommand "taskfile.json"
+        {
+          nativeBuildInputs = [ cfg.yamlConverter ];
+          # Make this build locally to avoid issues with remote builders
+          preferLocalBuild = true;
+          allowSubstitutes = false;
+        }
+        ''
+          # Convert YAML to JSON
+          if ! yj -yj < ${cfg.path} > $out 2>error.log; then
+            echo "Error: Failed to convert Taskfile at ${toString cfg.path} to JSON" >&2
+            echo "Please ensure the Taskfile is valid YAML" >&2
+            if [ -f error.log ]; then
+              cat error.log >&2
             fi
-          '';
+            exit 1
+          fi
+        '' else null;
 
       # Parse the JSON to get task definitions
-      taskfileData = builtins.fromJSON (builtins.readFile taskfileJson);
+      taskfileData = if shouldEvaluate then builtins.fromJSON (builtins.readFile taskfileJson) else {};
 
       # Extract tasks, handling missing tasks gracefully
       allTasks = taskfileData.tasks or { };

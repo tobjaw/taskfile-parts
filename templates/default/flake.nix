@@ -28,13 +28,25 @@
             enable = true;
             path = ./Taskfile.yml;
             excludeTasks = [ ];
+
+            # Customize the auto-generated devShell
+            shell = {
+              buildInputs = with pkgs; [
+                # Add additional packages here
+                jq
+              ];
+              env = {
+                MY_VAR = "value";
+              };
+            };
           };
 
-          devShells.default = pkgs.mkShell {
-            buildInputs = with pkgs; [
-              go-task
-            ];
-          };
+          # The devShell is automatically created with the shell hook!
+          # You can override it if needed by uncommenting below:
+          # devShells.default = pkgs.mkShell {
+          #   buildInputs = [ config.taskfile.package ];
+          #   shellHook = config.taskfile.shellHookText;
+          # };
         };
     };
 }

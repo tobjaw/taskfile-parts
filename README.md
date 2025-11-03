@@ -88,8 +88,13 @@ perSystem = { config, pkgs, ... }: {
     # YAML to JSON converter package (default: pkgs.yj)
     yamlConverter = pkgs.yj;
 
-    # Additional packages to include in the auto-generated devShell (default: [])
-    shellPackages = [ pkgs.jq pkgs.git pkgs.nodejs ];
+    # Customize the auto-generated devShell (default: {})
+    shell = {
+      buildInputs = [ pkgs.jq pkgs.git ];
+      env = {
+        DATABASE_URL = "postgres://localhost/mydb";
+      };
+    };
 
     # Shell hook configuration
     shellHook = {
@@ -184,9 +189,9 @@ tasks:
 
 ## Advanced Usage
 
-### Development Shell Packages
+### Customizing the Development Shell
 
-When the auto-generated devShell is enabled, you can specify additional packages that should be available in the environment. This is useful for ensuring your tasks have access to required tools:
+When the auto-generated devShell is enabled, you can customize it using the `shell` option. This allows you to add packages, set environment variables, and configure any other `mkShell` attributes:
 
 ```nix
 perSystem = { config, pkgs, ... }: {
@@ -194,18 +199,36 @@ perSystem = { config, pkgs, ... }: {
     enable = true;
     path = ./Taskfile.yml;
 
-    # These packages will be available to all tasks running in the devShell
-    shellPackages = with pkgs; [
-      jq        # For JSON processing
-      git       # For version control tasks
-      nodejs    # For npm/node tasks
-      docker    # For container tasks
-    ];
+    # Customize the devShell
+    shell = {
+      # Add packages to the shell environment
+      buildInputs = with pkgs; [
+        jq        # For JSON processing
+        git       # For version control tasks
+        nodejs    # For npm/node tasks
+        docker    # For container tasks
+      ];
+
+      # Set environment variables
+      env = {
+        DATABASE_URL = "postgres://localhost/mydb";
+        API_KEY = "dev-key";
+        NODE_ENV = "development";
+      };
+
+      # Add custom initialization
+      shellHook = ''
+        echo "Project initialized!"
+        export PATH="$PWD/bin:$PATH"
+      '';
+    };
   };
 };
 ```
 
-The `go-task` package is always included automatically, so you only need to specify additional dependencies your tasks need.
+The `go-task` package is always included automatically in `buildInputs`, so you only need to specify additional dependencies your tasks need.
+
+**Note**: If you specify a `shellHook` in `taskfile.shell`, it will be appended after the taskfile shell hook (which displays available tasks).
 
 ### Shell Hook Integration
 

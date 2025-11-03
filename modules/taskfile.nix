@@ -71,18 +71,35 @@ in
         '';
       };
 
-      shellPackages = mkOption {
-        type = types.listOf types.package;
-        default = [ ];
-        example = lib.literalExpression "[ pkgs.jq pkgs.git pkgs.nodejs ]";
+      shell = mkOption {
+        type = types.attrs;
+        default = { };
+        example = lib.literalExpression ''
+          {
+            buildInputs = [ pkgs.nodejs pkgs.jq ];
+            env = {
+              MY_VAR = "value";
+              DATABASE_URL = "postgres://localhost/mydb";
+            };
+            shellHook = '''
+              echo "Custom initialization"
+            ''';
+          }
+        '';
         description = ''
-          Additional packages to include in the auto-generated devShell environment.
+          Attribute set to merge into the auto-generated devShell.
 
-          These packages will be available to tasks when they run in the devShell.
-          This is useful for ensuring your tasks have access to required tools
-          without needing to define a custom devShell.
+          This allows full customization of the devShell, including:
+          - Adding packages via buildInputs
+          - Setting environment variables via env
+          - Adding custom shellHooks
+          - Any other mkShell attributes
 
-          Note: The go-task package (config.taskfile.package) is always included.
+          The attributes specified here are merged with the default shell configuration.
+          The taskfile.package (go-task) is always included automatically in buildInputs.
+
+          Note: If you specify a shellHook here, it will be appended after the
+          taskfile shell hook (if enabled via taskfile.shellHook.enable).
         '';
       };
 
@@ -294,10 +311,12 @@ in
       # Auto-inject shell hook into devShells.default if enabled
       # Uses lib.mkDefault so user definitions take precedence
       (mkIf (cfg.enable && cfg.shellHook.enable) {
-        devShells.default = lib.mkDefault (pkgs.mkShell {
-          buildInputs = [ cfg.package ] ++ cfg.shellPackages;
-          shellHook = cfg.shellHookText;
-        });
+        devShells.default = lib.mkDefault (pkgs.mkShell (lib.recursiveUpdate cfg.shell {
+          # Merge buildInputs: always include go-task, then add any from cfg.shell
+          buildInputs = [ cfg.package ] ++ (cfg.shell.buildInputs or [ ]);
+          # Append custom shellHook after taskfile shellHook
+          shellHook = cfg.shellHookText + lib.optionalString (cfg.shell ? shellHook) "\n${cfg.shell.shellHook}";
+        }));
       })
     ];
 }

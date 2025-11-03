@@ -12,10 +12,10 @@
   outputs =
     inputs@{ flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
-      # For dogfooding: limit to darwin systems to avoid IFD cross-compilation issues
-      # Users of this module won't have this limitation - they can specify any systems they support
-      # The IFD issue only affects flake evaluation, not the module itself when used by others
+      # Support all common platforms - no IFD means cross-platform evaluation works!
       systems = [
+        "x86_64-linux"
+        "aarch64-linux"
         "x86_64-darwin"
         "aarch64-darwin"
       ];

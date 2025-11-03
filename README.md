@@ -87,9 +87,6 @@ perSystem = { config, pkgs, ... }: {
     # Whether to generate packages in addition to apps (default: true)
     generatePackages = true;
 
-    # YAML to JSON converter package (default: pkgs.yj)
-    yamlConverter = pkgs.yj;
-
     # Customize the auto-generated devShell (default: {})
     shell = {
       buildInputs = [ pkgs.jq pkgs.git ];
@@ -146,10 +143,15 @@ nix profile install .#task-deploy
 
 ## How It Works
 
-1. **YAML Parsing**: The module uses Import From Derivation (IFD) to convert your `Taskfile.yml` to JSON using the `yj` tool
+1. **YAML Parsing**: The module uses Import From Derivation (IFD) to convert your `Taskfile.yml` to JSON using the `yj` tool. This happens during flake evaluation and is very fast (< 1 second), with results cached based on your Taskfile content.
+
 2. **Task Extraction**: Task definitions are parsed from the JSON and filtered based on your configuration
+
 3. **App Generation**: For each task, a shell script wrapper is created that calls `go-task` with the appropriate arguments
+
 4. **Metadata**: Task descriptions (`desc` or `summary` fields) are extracted and added to the app's metadata
+
+**About IFD**: This module uses Import From Derivation because Nix has no built-in YAML parser. This is the standard approach for parsing non-Nix formats (same as `pkgs.formats.yaml` in nixpkgs). The conversion is fast, cached, and works cross-platform on all supported systems.
 
 ## Example Taskfile
 
@@ -401,8 +403,13 @@ includes:
 ## Performance Considerations
 
 - The module uses Import From Derivation (IFD), which means the Taskfile is converted to JSON during evaluation
-- This is typically very fast (milliseconds) with the `yj` converter
-- The conversion is cached based on the content hash of your Taskfile
+- This is very fast (< 1 second for building `yj` and converting YAML)
+- The conversion is cached based on the content hash of your Taskfile, making subsequent evaluations instant
+- The YAML parser is built once for x86_64-darwin, which works across all platforms:
+  - Apple Silicon Macs: runs via Rosetta 2
+  - Intel Macs: runs natively
+  - Linux systems: can substitute from binary cache or use remote builders
+- This design allows evaluating multi-system flakes without needing remote builders
 
 ## Limitations
 

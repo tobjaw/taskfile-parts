@@ -3,8 +3,14 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    flake-parts.url = "github:hercules-ci/flake-parts";
-    taskfile-parts.url = "github:tobjaw/taskfile-parts";
+    flake-parts = {
+      url = "github:hercules-ci/flake-parts";
+      inputs.nixpkgs-lib.follows = "nixpkgs";
+    };
+    taskfile-parts = {
+      url = "github:tobjaw/taskfile-parts";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =

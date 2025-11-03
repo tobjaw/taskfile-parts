@@ -104,6 +104,9 @@ perSystem = { config, pkgs, ... }: {
       # Show task list when entering shell (default: true)
       showTaskList = true;
 
+      # Use colors, Unicode, and emojis for fancy formatting (default: true)
+      color = true;
+
       # Custom template for shell hook (default: null, uses built-in)
       template = null;
     };
@@ -246,19 +249,48 @@ perSystem = { config, pkgs, ... }: {
 };
 ```
 
-When you run `nix develop`, you'll see:
+When you run `nix develop`, you'll see a colorful display:
 ```
-📋 Available Tasks
-==================
+╭──────────────────────╮
+│  📋 Available Tasks  │
+╰──────────────────────╯
+
 task: Available tasks for this project:
 * build:   Build the project
 * test:    Run tests
 ...
+
+Run with: task <task-name> or nix run .#<task-name>
+```
+
+The output uses colors and fancy formatting by default.
+
+#### Disable Colors
+
+To use plain text formatting without colors or emojis (useful for terminals that don't support ANSI colors or Unicode well):
+
+```nix
+taskfile = {
+  enable = true;
+  shellHook.color = false;  # Use plain text formatting
+};
+```
+
+This will display a simpler format without colors, Unicode box-drawing characters, or emojis:
+```
+Available Tasks
+===============
+task: Available tasks for this project:
+* build:   Build the project
+* test:    Run tests
+...
+
+Run tasks with: task <task-name> OR nix run .#<task-name>
 ```
 
 #### Disable Shell Hook
 
-To disable the automatic shell hook creation:
+To disable the automatic shell hook creation entirely:
 
 ```nix
 taskfile = {

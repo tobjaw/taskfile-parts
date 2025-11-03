@@ -61,6 +61,8 @@ Enter the development shell to get access to task and other tools:
 nix develop
 ```
 
+When you enter the shell, you'll see a colorful display of available tasks with a fancy border and colored text. This helps you quickly see what tasks are available to run.
+
 Then you can use task directly:
 
 ```bash

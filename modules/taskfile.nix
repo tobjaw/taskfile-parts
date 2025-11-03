@@ -149,6 +149,19 @@ in
             '';
           };
 
+          color = mkOption {
+            type = types.bool;
+            default = true;
+            description = ''
+              Whether to use colors and fancy formatting in the shell hook.
+
+              When enabled (default), the shell hook will display with ANSI colors,
+              bold text, Unicode box-drawing characters, and emojis for a visually appealing output.
+
+              Set to false to use simple, plain text formatting without colors, Unicode, or emojis.
+            '';
+          };
+
           template = mkOption {
             type = types.nullOr types.str;
             default = null;
@@ -303,13 +316,35 @@ in
         taskfile.shellHookText =
           let
             # Use custom template if provided, otherwise use default
-            defaultTemplate = ''
-              echo "📋 Available Tasks"
-              echo "=================="
+            defaultTemplateColored = ''
+              # ANSI color codes
+              BOLD="\033[1m"
+              CYAN="\033[36m"
+              BLUE="\033[34m"
+              GREEN="\033[32m"
+              YELLOW="\033[33m"
+              MAGENTA="\033[35m"
+              RESET="\033[0m"
+              DIM="\033[2m"
+
+              echo -e "''${BOLD}''${CYAN}╭──────────────────────╮''${RESET}"
+              echo -e "''${BOLD}''${CYAN}│''${RESET}  ''${BOLD}''${MAGENTA}📋 Available Tasks''${RESET}  ''${BOLD}''${CYAN}│''${RESET}"
+              echo -e "''${BOLD}''${CYAN}╰──────────────────────╯''${RESET}"
               ${cfg.package}/bin/task --taskfile ${cfg.path} --list | tail -n +2
               echo ""
-              echo "Run tasks with: \`task <task-name>\` OR \`nix run .#<task-name>\`"
+              echo -e "''${DIM}Run with:''${RESET} ''${GREEN}task <task-name>''${RESET} ''${DIM}or''${RESET} ''${BLUE}nix run .#<task-name>''${RESET}"
+              echo ""
             '';
+
+            defaultTemplatePlain = ''
+              echo "Available Tasks"
+              echo "==============="
+              ${cfg.package}/bin/task --taskfile ${cfg.path} --list | tail -n +2
+              echo ""
+              echo "Run tasks with: task <task-name> OR nix run .#<task-name>"
+            '';
+
+            defaultTemplate = if cfg.shellHook.color then defaultTemplateColored else defaultTemplatePlain;
 
             template = if cfg.shellHook.template != null then cfg.shellHook.template else defaultTemplate;
           in

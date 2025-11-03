@@ -7,9 +7,15 @@
     flake-parts.inputs.nixpkgs-lib.follows = "nixpkgs";
   };
 
-  outputs = inputs @ { flake-parts, ... }:
+  outputs =
+    inputs@{ flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
-      systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "x86_64-darwin"
+        "aarch64-darwin"
+      ];
 
       # Export the taskfile module for use in other flakes
       flake = {
@@ -32,7 +38,7 @@
               2. Run `nix flake show` to see available tasks
               3. Run `nix run .#<task-name>` to execute a task
 
-              For more information, see: https://github.com/yourorg/taskfile-parts
+              For more information, see: https://github.com/tobjaw/taskfile-parts
             '';
           };
         };
@@ -43,32 +49,34 @@
         ./modules/taskfile.nix
       ];
 
-      perSystem = { config, pkgs, ... }: {
-        # Enable the taskfile module for this flake's testing
-        taskfile = {
-          enable = true;
-          path = ./examples/basic/Taskfile.yml;
-          package = pkgs.go-task;
-          excludeTasks = [ ];
-        };
+      perSystem =
+        { config, pkgs, ... }:
+        {
+          # Enable the taskfile module for this flake's testing
+          taskfile = {
+            enable = true;
+            path = ./examples/basic/Taskfile.yml;
+            package = pkgs.go-task;
+            excludeTasks = [ ];
+          };
 
-        # Development shell with go-task and nix tooling
-        devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            go-task
-            nixpkgs-fmt
-            nil  # Nix LSP
-          ];
+          # Development shell with go-task and nix tooling
+          devShells.default = pkgs.mkShell {
+            buildInputs = with pkgs; [
+              go-task
+              nixpkgs-fmt
+              nil # Nix LSP
+            ];
 
-          shellHook = ''
-            echo "🎯 Taskfile-parts development environment"
-            echo ""
-            echo "Available commands:"
-            echo "  task --list     - List all tasks in Taskfile.yml"
-            echo "  nix flake show  - Show all exposed apps and packages"
-            echo ""
-          '';
+            shellHook = ''
+              echo "🎯 Taskfile-parts development environment"
+              echo ""
+              echo "Available commands:"
+              echo "  task --list     - List all tasks in Taskfile.yml"
+              echo "  nix flake show  - Show all exposed apps and packages"
+              echo ""
+            '';
+          };
         };
-      };
     };
 }

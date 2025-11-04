@@ -94,6 +94,18 @@ let
     in
     trimmed == "" || hasPrefix "#" trimmed;
 
+  # Helper: Find the first occurrence of a character in a string
+  # Returns the index of the first occurrence, or -1 if not found
+  indexOf = char: str:
+    let
+      len = stringLength str;
+      find' = n:
+        if n >= len then -1
+        else if substring n 1 str == char then n
+        else find' (n + 1);
+    in
+    find' 0;
+
   # Parse a list of lines starting from a given index
   # Returns: { value = <parsed data>; nextIndex = <index after this block>; }
   parseLines = lines: startIdx: baseIndent: context:
@@ -129,7 +141,7 @@ let
               parsed = if hasColon then
                 # Array item is a map, parse it
                 let
-                  colonIdx = lib.stringLength itemContent - lib.stringLength (lib.removePrefix ":" itemContent) - 1;
+                  colonIdx = indexOf ":" itemContent;
                   key = trim (substring 0 colonIdx itemContent);
                   value = trim (substring (colonIdx + 1) (stringLength itemContent - colonIdx - 1) itemContent);
 
@@ -165,7 +177,7 @@ let
           else if match ".*:.*" trimmedLine != null then
             let
               # Find the colon position
-              colonPos = lib.stringLength trimmedLine - lib.stringLength (lib.removePrefix ":" trimmedLine) - 1;
+              colonPos = indexOf ":" trimmedLine;
               key = trim (substring 0 colonPos trimmedLine);
               valueStr = trim (substring (colonPos + 1) (stringLength trimmedLine - colonPos - 1) trimmedLine);
 

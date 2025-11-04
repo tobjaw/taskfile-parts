@@ -95,6 +95,18 @@ in
         key:
       ''
       { key = { }; })
+
+    (testCase "key with underscore"
+      ''
+        PROJECT_NAME: taskfile-parts
+      ''
+      { PROJECT_NAME = "taskfile-parts"; })
+
+    (testCase "key with hyphen in value"
+      ''
+        name: taskfile-parts
+      ''
+      { name = "taskfile-parts"; })
   ];
 
   # Nested Map Tests

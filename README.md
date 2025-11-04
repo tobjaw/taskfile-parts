@@ -4,6 +4,7 @@ A [flake-parts](https://flake.parts) module that integrates [Taskfile](https://t
 
 ## Features
 
+- **Pure Nix Parsing**: Uses a native Nix YAML parser with no IFD (Import From Derivation) for fast, cross-platform evaluation
 - **Automatic App Generation**: Parse your `Taskfile.yml` and expose each task as a Nix app
 - **Package Outputs**: Optionally generate packages for each task
 - **Metadata Extraction**: Task descriptions are automatically extracted and added to app metadata
@@ -87,11 +88,6 @@ perSystem = { config, pkgs, ... }: {
     # Whether to generate packages in addition to apps (default: true)
     generatePackages = true;
 
-    # System to use for IFD when parsing Taskfile (default: null, uses current system)
-    # Set this to enable cross-platform evaluation without remote builders
-    # Examples: "x86_64-linux" for Linux, "aarch64-darwin" for Apple Silicon
-    ifdSystem = null;
-
     # Customize the auto-generated devShell (default: {})
     shell = {
       buildInputs = [ pkgs.jq pkgs.git ];
@@ -148,15 +144,15 @@ nix profile install .#task-deploy
 
 ## How It Works
 
-1. **YAML Parsing**: The module uses Import From Derivation (IFD) to convert your `Taskfile.yml` to JSON using the `yj` tool. This happens during flake evaluation and is very fast (< 1 second), with results cached based on your Taskfile content.
+1. **YAML Parsing**: The module uses a **pure Nix YAML parser** to parse your `Taskfile.yml` during evaluation. This means no Import From Derivation (IFD) is needed, making evaluation faster and enabling cross-platform evaluation without any build dependencies.
 
-2. **Task Extraction**: Task definitions are parsed from the JSON and filtered based on your configuration
+2. **Task Extraction**: Task definitions are parsed from the YAML structure and filtered based on your configuration
 
 3. **App Generation**: For each task, a shell script wrapper is created that calls `go-task` with the appropriate arguments
 
 4. **Metadata**: Task descriptions (`desc` or `summary` fields) are extracted and added to the app's metadata
 
-**About IFD**: This module uses Import From Derivation because Nix has no built-in YAML parser. This is the standard approach for parsing non-Nix formats (same as `pkgs.formats.yaml` in nixpkgs). The conversion is fast, cached, and works cross-platform on all supported systems.
+**Pure Nix Parser**: Unlike many YAML integrations that rely on IFD, this module implements a native Nix YAML parser specifically optimized for the Taskfile schema subset. This eliminates build-time dependencies during evaluation and works seamlessly across all platforms without requiring binary caches or remote builders.
 
 ## Example Taskfile
 
@@ -407,16 +403,12 @@ includes:
 
 ## Performance Considerations
 
-- The module uses Import From Derivation (IFD), which means the Taskfile is converted to JSON during evaluation
-- This is very fast (< 1 second for building `yj` and converting YAML)
-- The conversion is cached based on the content hash of your Taskfile, making subsequent evaluations instant
-- By default, the YAML parser is built per-system using that system's native tooling
-- Works seamlessly on all supported platforms when evaluating for the native system
-- For cross-platform evaluation (e.g., `nix flake show --all-systems`):
-  - Set `ifdSystem` to your native platform (e.g., "aarch64-darwin" on Apple Silicon Macs)
-  - Or configure remote builders for target platforms
-  - Or rely on binary caches (like cache.nixos.org) for instant substitution
-- The `ifdSystem` option allows cross-platform evaluation without remote builders
+- The module uses a **pure Nix YAML parser** with no Import From Derivation (IFD)
+- Parsing happens entirely during Nix evaluation using native Nix functions
+- No build dependencies or external tools are required during evaluation
+- Works instantly on all platforms without binary caches or remote builders
+- Cross-platform evaluation (e.g., `nix flake show --all-systems`) works out of the box
+- The parser is optimized for the Taskfile schema subset and handles typical Taskfiles efficiently
 
 ## Limitations
 
@@ -460,4 +452,4 @@ MIT License - see LICENSE file for details
 
 - Inspired by the Nix community's work on flake-parts modules
 - Built on top of the excellent Taskfile project
-- Uses the `yj` YAML/JSON converter for parsing
+- Implements a pure Nix YAML parser to avoid IFD

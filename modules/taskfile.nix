@@ -13,44 +13,12 @@ let
     mkMerge
     ;
 
-  # System-independent JSON parsing for Taskfiles
-  #
-  # The Taskfile JSON is system-independent (same YAML -> same JSON).
-  # To allow cross-platform evaluation without remote builders, we build the
-  # YAML parser using a configurable system (defaults to current system).
-  parseTaskfile =
-    taskfilePath: targetPkgs: ifdSystem:
-    let
-      # Use the specified IFD system's pkgs for building the YAML parser
-      # This allows users to choose a system they have builders for
-      yjPkgs = if ifdSystem == null then targetPkgs else (import inputs.nixpkgs { system = ifdSystem; });
+  # Import the Nix-native YAML parser
+  yamlParser = import ./yaml-parser.nix { inherit lib; };
 
-      taskfileJson = yjPkgs.runCommand "taskfile.json"
-        {
-          nativeBuildInputs = [ yjPkgs.yj ];
-          # Allow building on remote builders or substituting from cache
-          preferLocalBuild = false;
-          # Allow substituting from binary cache to avoid local builds
-          allowSubstitutes = true;
-          # Include taskfile path so changes invalidate cache
-          taskfilePath = taskfilePath;
-        }
-        ''
-          if ! yj -yj < "$taskfilePath" > $out 2>"$TMPDIR/error.log"; then
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
-            echo "Error: Failed to parse Taskfile at: $taskfilePath" >&2
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
-            echo "" >&2
-            echo "YAML parser output:" >&2
-            cat "$TMPDIR/error.log" >&2
-            echo "" >&2
-            echo "Please ensure your Taskfile.yml is valid YAML syntax." >&2
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
-            exit 1
-          fi
-        '';
-    in
-    builtins.fromJSON (builtins.readFile taskfileJson);
+  # Parse Taskfile using pure Nix (no IFD)
+  # This is much faster and doesn't require building derivations during evaluation
+  parseTaskfile = taskfilePath: yamlParser.parseYAMLFile taskfilePath;
 in
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption (
@@ -116,42 +84,6 @@ in
 
             When enabled, tasks will be available as both apps and packages,
             allowing them to be built with `nix build .#task-<name>`.
-          '';
-        };
-
-        yamlConverter = mkOption {
-          type = types.package;
-          default = pkgs.yj;
-          defaultText = lib.literalExpression "pkgs.yj";
-          description = ''
-            Package to use for converting YAML to JSON.
-
-            Must provide a command-line tool that can convert YAML to JSON.
-            The default `yj` works with the `-yj` flags.
-          '';
-        };
-
-        ifdSystem = mkOption {
-          type = types.nullOr types.str;
-          default = null;
-          example = "x86_64-linux";
-          description = ''
-            System to use for Import From Derivation (IFD) when parsing the Taskfile.
-
-            By default (null), uses the current system's pkgs. This works well when
-            evaluating for the native system, but requires remote builders when
-            evaluating for other systems (e.g., nix flake show --all-systems).
-
-            Setting this to a specific system (e.g., "x86_64-linux" or "x86_64-darwin")
-            allows cross-platform evaluation without remote builders, but requires
-            that you can build for that system (either natively, via emulation, or
-            via binary caches).
-
-            Common scenarios:
-            - Linux users: set to "x86_64-linux" for maximum compatibility
-            - macOS users: set to "x86_64-darwin" if you have Rosetta 2 (Apple Silicon)
-                          or are on Intel Mac
-            - Leave as null if you have remote builders configured
           '';
         };
 
@@ -277,9 +209,8 @@ in
     let
       cfg = config.taskfile;
 
-      # Parse the Taskfile using the top-level helper function
-      # This runs IFD using the configured system (or current system if not specified)
-      taskfileData = if cfg.enable then parseTaskfile cfg.path pkgs cfg.ifdSystem else { };
+      # Parse the Taskfile using pure Nix (no IFD!)
+      taskfileData = if cfg.enable then parseTaskfile cfg.path else { };
 
       # Extract tasks from the Taskfile
       allTasks = taskfileData.tasks or { };

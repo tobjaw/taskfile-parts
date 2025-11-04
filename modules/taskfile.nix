@@ -301,7 +301,6 @@ in
         pkgs.writeShellScript "task-${taskName}" ''
           set -euo pipefail
           exec ${cfg.package}/bin/task \
-            --taskfile ${cfg.path} \
             ${lib.escapeShellArg taskName} "$@"
         '';
 
@@ -321,7 +320,7 @@ in
           name = "task-${taskName}";
           runtimeInputs = [ cfg.package ];
           text = ''
-            exec task --taskfile ${cfg.path} ${lib.escapeShellArg taskName} "$@"
+            exec task ${lib.escapeShellArg taskName} "$@"
           '';
           meta = {
             description = getTaskDescription taskName taskDef;
@@ -353,7 +352,7 @@ in
           type = "app";
           program = toString (
             pkgs.writeShellScript "tasks-list" ''
-              exec ${cfg.package}/bin/task --taskfile ${cfg.path} --list
+              exec ${cfg.package}/bin/task --list
             ''
           );
           meta = {

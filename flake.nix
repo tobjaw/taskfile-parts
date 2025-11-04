@@ -61,10 +61,32 @@
             path = ./Taskfile.yml;
             package = pkgs.go-task;
             excludeTasks = [ ];
-            # Optional: Set ifdSystem to enable cross-platform evaluation without remote builders
-            # This dogfooding flake uses "aarch64-darwin" since it's developed on Apple Silicon
-            # Linux users should use "x86_64-linux" instead, or leave as null for per-system builds
-            ifdSystem = "aarch64-darwin";
+          };
+
+          # Add checks for testing
+          checks = {
+            # Integration tests - verify parser works with real Taskfiles
+            integration-tests = (import ./tests/integration-test.nix { inherit pkgs; }).check;
+
+            # YAML parser unit tests - verify all test cases pass
+            yaml-parser-tests = pkgs.runCommand "yaml-parser-tests"
+              {
+                buildInputs = [ pkgs.nix ];
+              }
+              ''
+                # Run the test suite
+                ${pkgs.nix}/bin/nix-instantiate --eval --strict ${./tests/yaml-parser-tests.nix} -A all.overall > $out 2>&1
+
+                # Check if any tests failed
+                if grep -q "✗" $out; then
+                  cat $out
+                  echo ""
+                  echo "Tests failed!"
+                  exit 1
+                fi
+
+                echo "All tests passed!"
+              '';
           };
 
           # Development shell with go-task and nix tooling
@@ -80,7 +102,9 @@
               echo ""
               echo "Available commands:"
               echo "  task --list     - List all tasks in Taskfile.yml"
+              echo "  task test       - Run YAML parser test suite"
               echo "  nix flake show  - Show all exposed apps and packages"
+              echo "  nix flake check - Run all tests"
               echo ""
             '';
           };

@@ -429,11 +429,26 @@ cd taskfile-parts
 # Enter the development shell
 nix develop
 
+# Run the test suite
+task test           # Quick test summary
+task test-verbose   # Detailed test output
+nix flake check     # Run all checks including tests
+
 # Test the example
 cd examples/basic
 nix flake show
 nix run .#hello
 ```
+
+### Testing
+
+The project includes a comprehensive test suite for the YAML parser:
+
+- **Unit Tests**: Tests for all YAML features (scalars, maps, arrays, multi-line strings, etc.)
+- **Integration Tests**: Tests parsing of actual Taskfiles from the repository
+- **Edge Cases**: Tests for unusual scenarios and special characters
+
+See [tests/README.md](tests/README.md) for detailed testing documentation.
 
 ## Contributing
 

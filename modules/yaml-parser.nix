@@ -142,8 +142,14 @@ let
                 # Array item is a map, parse it
                 let
                   colonIdx = indexOf ":" itemContent;
-                  key = trim (substring 0 colonIdx itemContent);
-                  value = trim (substring (colonIdx + 1) (stringLength itemContent - colonIdx - 1) itemContent);
+
+                  # Ensure colonIdx is valid
+                  validColonIdx = if colonIdx < 0
+                    then throw "indexOf failed to find ':' in array item: ${itemContent}"
+                    else colonIdx;
+
+                  key = trim (substring 0 validColonIdx itemContent);
+                  value = trim (substring (validColonIdx + 1) (stringLength itemContent - validColonIdx - 1) itemContent);
 
                   # Check if value is empty (multiline) or inline
                   nestedResult = if value == "" then
@@ -178,8 +184,14 @@ let
             let
               # Find the colon position
               colonPos = indexOf ":" trimmedLine;
-              key = trim (substring 0 colonPos trimmedLine);
-              valueStr = trim (substring (colonPos + 1) (stringLength trimmedLine - colonPos - 1) trimmedLine);
+
+              # Ensure colonPos is valid (should always be >= 0 since we matched for ":")
+              validColonPos = if colonPos < 0
+                then throw "indexOf failed to find ':' in line: ${trimmedLine}"
+                else colonPos;
+
+              key = trim (substring 0 validColonPos trimmedLine);
+              valueStr = trim (substring (validColonPos + 1) (stringLength trimmedLine - validColonPos - 1) trimmedLine);
 
               # Determine if this is a multiline value or nested structure
               parsed =

@@ -15,7 +15,8 @@ This document provides an overview of the taskfile-parts implementation.
 ├── IMPLEMENTATION.md      # This file
 │
 ├── modules/
-│   └── taskfile.nix       # Core flake-parts module implementation
+│   ├── taskfile.nix       # Core flake-parts module implementation
+│   └── yaml-parser.nix    # Pure Nix YAML parser
 │
 ├── examples/
 │   └── basic/
@@ -41,32 +42,31 @@ The module exposes the following options under `perSystem.taskfile`:
 - `package` (package, default: pkgs.go-task) - go-task package to use
 - `excludeTasks` (list of strings, default: []) - Tasks to exclude from generation
 - `generatePackages` (bool, default: true) - Whether to generate packages
-- `ifdSystem` (null or string, default: null) - System to use for IFD (e.g., "x86_64-linux")
 - `shell` (attrs, default: {}) - Customize the auto-generated devShell
 - `shellHook.*` - Shell hook configuration options
 
-### 2. YAML Parsing with IFD
+### 2. Pure Nix YAML Parsing
 
-The module uses Import From Derivation (IFD) to parse YAML at evaluation time:
+The module uses a **pure Nix YAML parser** (no IFD!) implemented in `modules/yaml-parser.nix`:
 
-1. Uses `pkgs.runCommand` to convert `Taskfile.yml` to JSON using `yj`
-2. Reads the JSON file with `builtins.readFile` and parses with `builtins.fromJSON`
+1. Parses YAML directly during Nix evaluation using native Nix functions
+2. Optimized for the Taskfile schema subset (maps, arrays, scalars, multi-line strings)
 3. Extracts task definitions from the parsed structure
 
-**Why IFD?**
-- Nix has no built-in YAML parser
-- This is the only way to read actual Taskfile.yml files
-- It's fast (< 1 second for `yj` build) and results are cached
-- This is the standard approach (similar to `pkgs.formats.yaml` in nixpkgs)
+**Why Pure Nix?**
+- No Import From Derivation (IFD) needed - faster evaluation
+- No build dependencies during evaluation
+- Works instantly across all platforms without binary caches or remote builders
+- Enables cross-platform evaluation (`nix flake show --all-systems`) out of the box
+- Simplified caching and evaluation model
 
-**Cross-Platform Compatibility:**
-- By default, the YAML parser is built per-system using that system's native pkgs
-- The `ifdSystem` option allows pinning to a specific system for cross-platform evaluation
-- When `ifdSystem` is set, all systems use that platform for parsing (e.g., "aarch64-darwin" on Apple Silicon)
-- This allows `nix flake show --all-systems` without remote builders
-- Works natively on all supported platforms
-- Uses `allowSubstitutes = true` to fetch from binary caches when available
-- Supports: x86_64-linux, aarch64-linux, x86_64-darwin, aarch64-darwin
+**Parser Features:**
+- Handles nested maps and arrays (block style)
+- Supports multi-line strings with `|` pipe notation
+- Parses strings (quoted and unquoted), numbers, booleans, and null
+- Handles comments (lines starting with `#`)
+- Tracks indentation for proper nesting
+- Optimized for typical Taskfile structures
 
 ### 3. Dynamic App Generation
 
@@ -90,7 +90,7 @@ When `generatePackages` is true:
 
 All core features have been tested and verified:
 
-✅ YAML parsing with IFD works correctly
+✅ Pure Nix YAML parsing works correctly (no IFD!)
 ✅ Apps are generated for each task
 ✅ Packages are generated when enabled
 ✅ Task descriptions are extracted as metadata
@@ -98,6 +98,7 @@ All core features have been tested and verified:
 ✅ Packages can be built via `nix build .#<taskname>`
 ✅ The built packages execute correctly
 ✅ The `tasks-list` convenience app works
+✅ Cross-platform evaluation works without remote builders
 ✅ Task exclusion works (configured in flake.nix)
 
 ## Usage Example

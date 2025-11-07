@@ -42,3 +42,15 @@ tasks:
     cmds:
       - rm -f result
       - rm -rf examples/*/build
+
+  test:
+    desc: Run YAML parser test suite
+    cmds:
+      - echo "Running YAML parser tests..."
+      - nix-instantiate --eval --strict tests/yaml-parser-tests.nix -A all.overall 2>&1 | sed 's/"//g' | sed 's/\\n/\n/g'
+
+  test-verbose:
+    desc: Run tests with detailed output
+    cmds:
+      - echo "Running YAML parser tests (verbose)..."
+      - nix-instantiate --eval --strict tests/run-tests.nix -A results 2>&1 | sed 's/"//g' | sed 's/\\n/\n/g'

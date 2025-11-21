@@ -1,16 +1,26 @@
 # taskfile-parts
 
-A [flake-parts](https://flake.parts) module that integrates [Taskfile](https://taskfile.dev) with Nix flakes, automatically exposing your tasks as Nix apps and packages.
+A [flake-parts](https://flake.parts) module that automatically exposes [Taskfile](https://taskfile.dev) tasks as Nix apps and packages.
+
+```
+> nix develop .#
+╭──────────────────────╮
+│  📋 Available Tasks  │
+╰──────────────────────╯
+
+task: Available tasks for this project:
+* build:   Build the project
+* test:    Run tests
+...
+
+Run with: task <task-name> or nix run .#<task-name>
+```
 
 ## Features
 
-- **Pure Nix Parsing**: Uses a native Nix YAML parser with no IFD (Import From Derivation) for fast, cross-platform evaluation
-- **Automatic App Generation**: Parse your `Taskfile.yml` and expose each task as a Nix app
-- **Package Outputs**: Optionally generate packages for each task
-- **Metadata Extraction**: Task descriptions are automatically extracted and added to app metadata
-- **Flexible Configuration**: Exclude specific tasks, customize the go-task package, and more
-- **Minimal Boilerplate**: Just enable the module and point to your Taskfile. Optionally enable devShell hook for MOTD.
-- **Cross-Platform**: Works on Linux and macOS (x86_64 and aarch64)
+  * **Pure Nix Parsing:** Parses `Taskfile.yml` without Import From Derivation (IFD). Fast evaluation and native cross-platform support.
+  * **Auto-Generated Apps:** Every task becomes a runnable app (e.g., `nix run .#build`).
+  * **Smart DevShell:** `nix develop` automatically displays a formatted list of available tasks.
 
 ## Quick Start
 
@@ -21,9 +31,6 @@ The fastest way to get started:
 ```bash
 # Initialize a new project with taskfile-parts
 nix flake init -t github:tobjaw/taskfile-parts
-
-# Update flake inputs
-nix flake update
 
 # List available tasks
 nix run .#tasks-list
@@ -66,9 +73,35 @@ Add taskfile-parts to your existing flake:
 
 See [./examples](examples) for extended configuration examples.
 
-## Configuration
+## Usage
 
-The module provides several configuration options:
+Once configured, your tasks are available as Nix apps:
+
+```bash
+# List all available tasks
+nix run .#tasks-list
+
+# Run a specific task
+nix run .#build
+
+# Run a task with arguments
+nix run .#test -- --verbose
+
+# Show all flake outputs (including tasks)
+nix flake show
+```
+
+If `generatePackages` is enabled (disabled by default), you can also build tasks:
+
+```bash
+# Build a task as a package
+nix build .#task-build
+
+# Install a task to your profile
+nix profile install .#task-deploy
+```
+
+## Configuration
 
 ```nix
 perSystem = { config, pkgs, ... }: {
@@ -113,46 +146,6 @@ perSystem = { config, pkgs, ... }: {
   };
 };
 ```
-
-## Usage
-
-Once configured, your tasks are available as Nix apps:
-
-```bash
-# List all available tasks
-nix run .#tasks-list
-
-# Run a specific task
-nix run .#build
-
-# Run a task with arguments
-nix run .#test -- --verbose
-
-# Show all flake outputs (including tasks)
-nix flake show
-```
-
-If `generatePackages` is enabled (disabled by default), you can also build tasks:
-
-```bash
-# Build a task as a package
-nix build .#task-build
-
-# Install a task to your profile
-nix profile install .#task-deploy
-```
-
-## How It Works
-
-1. **YAML Parsing**: The module uses a **pure Nix YAML parser** to parse your `Taskfile.yml` during evaluation. This means no Import From Derivation (IFD) is needed, making evaluation faster and enabling cross-platform evaluation without any build dependencies.
-
-2. **Task Extraction**: Task definitions are parsed from the YAML structure and filtered based on your configuration
-
-3. **App Generation**: For each task, a shell script wrapper is created that calls `go-task` with the appropriate arguments
-
-4. **Metadata**: Task descriptions (`desc` or `summary` fields) are extracted and added to the app's metadata
-
-**Pure Nix Parser**: Unlike many YAML integrations that rely on IFD, this module implements a native Nix YAML parser specifically optimized for the Taskfile schema subset. This eliminates build-time dependencies during evaluation and works seamlessly across all platforms without requiring binary caches or remote builders.
 
 ## Example Taskfile
 
@@ -401,20 +394,10 @@ includes:
 - **Nix**: Requires Nix with flakes enabled
 - **Platforms**: Linux (x86_64, aarch64) and macOS (x86_64, aarch64)
 
-## Performance Considerations
-
-- The module uses a **pure Nix YAML parser** with no Import From Derivation (IFD)
-- Parsing happens entirely during Nix evaluation using native Nix functions
-- No build dependencies or external tools are required during evaluation
-- Works instantly on all platforms without binary caches or remote builders
-- Cross-platform evaluation (e.g., `nix flake show --all-systems`) works out of the box
-- The parser is optimized for the Taskfile schema subset and handles typical Taskfiles efficiently
-
 ## Limitations
 
 - Task dependencies are handled by Taskfile itself, not by Nix
 - Variables and environment setup defined in the Taskfile are preserved
-- Tasks must be defined in a valid YAML format
 - The `internal` tasks (prefixed with `:`) in Taskfile are still processed unless explicitly excluded
 
 ## Development
@@ -453,18 +436,3 @@ See [tests/README.md](tests/README.md) for detailed testing documentation.
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-MIT License - see LICENSE file for details
-
-## Related Projects
-
-- [Taskfile](https://taskfile.dev) - Task runner / simpler Make alternative written in Go
-- [flake-parts](https://flake.parts) - Simplify Nix flakes with the module system
-
-## Acknowledgments
-
-- Inspired by the Nix community's work on flake-parts modules
-- Built on top of the excellent Taskfile project
-- Implements a pure Nix YAML parser to avoid IFD

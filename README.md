@@ -118,8 +118,8 @@ perSystem = { config, pkgs, ... }: {
     # List of task names to exclude from generation (default: [])
     excludeTasks = [ "internal-task" "secret-task" ];
 
-    # Whether to generate packages in addition to apps (default: true)
-    generatePackages = true;
+    # Whether to generate packages in addition to apps (default: false)
+    generatePackages = false;
 
     # Customize the auto-generated devShell (default: {})
     shell = {

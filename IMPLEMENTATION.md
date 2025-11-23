@@ -41,7 +41,7 @@ The module exposes the following options under `perSystem.taskfile`:
 - `path` (path, default: ./Taskfile.yml) - Path to Taskfile
 - `package` (package, default: pkgs.go-task) - go-task package to use
 - `excludeTasks` (list of strings, default: []) - Tasks to exclude from generation
-- `generatePackages` (bool, default: true) - Whether to generate packages
+- `generatePackages` (bool, default: false) - Whether to generate packages
 - `shell` (attrs, default: {}) - Customize the auto-generated devShell
 - `shellHook.*` - Shell hook configuration options
 

@@ -78,7 +78,7 @@ in
 
         generatePackages = mkOption {
           type = types.bool;
-          default = true;
+          default = false;
           description = ''
             Whether to generate packages in addition to apps.
 

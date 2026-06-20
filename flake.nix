@@ -2,7 +2,7 @@
   description = "A flake-parts module for integrating Taskfile with Nix flakes";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     flake-parts = {
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
@@ -53,7 +53,12 @@
       ];
 
       perSystem =
-        { config, pkgs, system, ... }:
+        {
+          config,
+          pkgs,
+          system,
+          ...
+        }:
         {
           # Enable the taskfile module for this flake's testing
           taskfile = {
@@ -69,31 +74,32 @@
             integration-tests = (import ./tests/integration-test.nix { inherit pkgs; }).check;
 
             # YAML parser unit tests - verify all test cases pass
-            yaml-parser-tests = pkgs.runCommand "yaml-parser-tests"
-              {
-                buildInputs = [ pkgs.nix ];
-              }
-              ''
-                # Run the test suite
-                ${pkgs.nix}/bin/nix-instantiate --eval --strict ${./tests/yaml-parser-tests.nix} -A all.overall > $out 2>&1
+            yaml-parser-tests =
+              pkgs.runCommand "yaml-parser-tests"
+                {
+                  buildInputs = [ pkgs.nix ];
+                }
+                ''
+                  # Run the test suite
+                  ${pkgs.nix}/bin/nix-instantiate --eval --strict ${./tests/yaml-parser-tests.nix} -A all.overall > $out 2>&1
 
-                # Check if any tests failed
-                if grep -q "✗" $out; then
-                  cat $out
-                  echo ""
-                  echo "Tests failed!"
-                  exit 1
-                fi
+                  # Check if any tests failed
+                  if grep -q "✗" $out; then
+                    cat $out
+                    echo ""
+                    echo "Tests failed!"
+                    exit 1
+                  fi
 
-                echo "All tests passed!"
-              '';
+                  echo "All tests passed!"
+                '';
           };
 
           # Development shell with go-task and nix tooling
           devShells.default = pkgs.mkShell {
             buildInputs = with pkgs; [
               go-task
-              nixfmt-rfc-style
+              nixfmt
               nil # Nix LSP
             ];
 

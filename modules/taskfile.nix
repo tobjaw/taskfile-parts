@@ -88,7 +88,21 @@ in
         };
 
         shell = mkOption {
-          type = types.attrs;
+          type = types.submodule {
+            freeformType = types.attrs;
+            options = {
+              buildInputs = mkOption {
+                type = types.listOf types.unspecified;
+                default = [ ];
+                description = "Packages to add to the devShell. Merged (concatenated) across modules.";
+              };
+              env = mkOption {
+                type = types.attrsOf types.str;
+                default = { };
+                description = "Environment variables to set in the devShell. Merged across modules.";
+              };
+            };
+          };
           default = { };
           example = lib.literalExpression ''
             {
@@ -113,6 +127,11 @@ in
 
             The attributes specified here are merged with the default shell configuration.
             The taskfile.package (go-task) is always included automatically in buildInputs.
+
+            `buildInputs` and `env` are declared options, so multiple modules (e.g. several
+            flake-parts imports) contributing to `taskfile.shell.buildInputs` are concatenated
+            rather than overwriting each other. Any other key is a freeform passthrough to
+            `pkgs.mkShell` and follows normal last-definition-wins semantics.
 
             Note: If you specify a shellHook here, it will be prepended before the
             taskfile shell hook (if enabled via taskfile.shellHook.enable).

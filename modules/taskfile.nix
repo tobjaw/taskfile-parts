@@ -159,8 +159,8 @@ in
             description = ''
               Whether to display the task list in the shell hook.
 
-              When enabled, entering the dev shell will automatically run `task --list`
-              to show all available tasks.
+              When enabled, entering the dev shell will automatically run `task --list-all`
+              to show all available tasks, including those without a `desc` field.
             '';
           };
 
@@ -302,7 +302,7 @@ in
           type = "app";
           program = toString (
             pkgs.writeShellScript "tasks-list" ''
-              exec ${cfg.package}/bin/task --list
+              exec ${cfg.package}/bin/task --list-all
             ''
           );
           meta = {
@@ -330,7 +330,7 @@ in
               echo -e "''${BOLD}''${CYAN}╭──────────────────────╮''${RESET}"
               echo -e "''${BOLD}''${CYAN}│''${RESET}  ''${BOLD}''${MAGENTA}📋 Available Tasks''${RESET}  ''${BOLD}''${CYAN}│''${RESET}"
               echo -e "''${BOLD}''${CYAN}╰──────────────────────╯''${RESET}"
-              ${cfg.package}/bin/task --taskfile ${cfg.path} --list | tail -n +2
+              ${cfg.package}/bin/task --taskfile ${cfg.path} --list-all | tail -n +2
               echo ""
               echo -e "''${DIM}Run with:''${RESET} ''${GREEN}task <task-name>''${RESET} ''${DIM}or''${RESET} ''${BLUE}nix run .#<task-name>''${RESET}"
               echo ""
